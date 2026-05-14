@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Account — REST-O-SORT</title>
+<meta name="description" content="Manage your profile, orders, reservations and wallet.">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+</head><body><main>
+<div class="container" style="padding-top:5rem;padding-bottom:5rem;max-width:72rem">
+<div id="accountRoot"></div>
+</div>
+</main>
+<script src="/script.js"></script>
+<script>
+const TABS=['Overview','My Orders','Reservations','Wallet','Edit Profile'];
+let activeTab='Overview', topup=500;
+function initPage(){
+  const u=currentUser();
+  if(!u){ location.href='/signin'; return; }
+  ensureProfile(u.email, u.full_name);
+  render();
+}
+function getProfile(){ const u=currentUser(); return getUsers()[u.email]; }
+function render(){
+  const u=currentUser(); const p=getProfile();
+  const orders=getOrders().filter(o=>o.user===u.email);
+  const bookings=getBookings().filter(b=>b.user===u.email);
+  const tx=getTx(u.email);
+  document.getElementById('accountRoot').innerHTML=`
+    <div class="profile-card">
+      <div class="avatar">${p.avatar_initial}</div>
+      <div class="profile-info">
+        <h1 style="font-size:1.875rem">${p.full_name||'Guest'}</h1>
+        <p class="cream-60" style="font-size:.875rem">${p.email}</p>
+      </div>
+      <div class="wallet-box">
+        <div class="eyebrow-sm" style="font-size:10px">Wallet</div>
+        <div style="font-family:var(--font-display);font-size:1.875rem;margin-top:.25rem">₹${Number(p.wallet_balance).toFixed(0)}</div>
+      </div>
+    </div>
+    <div class="tabs-row">
+      ${TABS.map(t=>`<button class="tab${t===activeTab?' active':''}" data-t="${t}">${t}</button>`).join('')}
+      <button class="btn-danger" id="signOutBtn">Sign Out</button>
+    </div>
+    <div class="tab-panel" id="tabPanel"></div>`;
+  document.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{ activeTab=b.dataset.t; render(); });
+  document.getElementById('signOutBtn').onclick=signOut;
+  renderTab(orders, bookings, tx, p);
+}
+function renderTab(orders,bookings,tx,p){
+  const panel=document.getElementById('tabPanel');
+  if(activeTab==='Overview'){
+    panel.innerHTML=`<div class="grid-3" style="gap:1rem">
+      <div class="stat-box"><div class="v">${orders.length}</div><div class="kpi-l" style="margin-top:.5rem">Orders</div></div>
+      <div class="stat-box"><div class="v">${bookings.length}</div><div class="kpi-l" style="margin-top:.5rem">Reservations</div></div>
+      <div class="stat-box"><div class="v">${tx.length}</div><div class="kpi-l" style="margin-top:.5rem">Transactions</div></div>
+    </div>`;
+  } else if(activeTab==='My Orders'){
+    panel.innerHTML = orders.length?orders.map(o=>`
+      <div class="list-row"><div><div>${o.items.length} items · ${o.order_type}</div><div style="font-size:.75rem;color:rgba(245,240,224,.5)">${new Date(o.created_at).toLocaleString()}</div></div>
+      <div class="gold" style="font-family:var(--font-display);font-size:1.25rem">₹${Number(o.total).toFixed(0)}</div></div>`).join(''):'<p class="cream-60">No orders yet.</p>';
+  } else if(activeTab==='Reservations'){
+    panel.innerHTML = bookings.length?bookings.map(b=>`
+      <div class="list-row"><div><div>${b.zone.replace('_',' ')} · ${b.party_size} guests</div><div style="font-size:.75rem;color:rgba(245,240,224,.5)">${b.booking_date} at ${b.booking_time}</div></div>
+      <div style="display:flex;align-items:center;gap:.75rem">
+        <span class="status-pill ${b.status==='cancelled'?'cancelled':''}">${b.status}</span>
+        ${b.status!=='cancelled'?`<button class="btn-sm" style="font-size:.75rem;color:rgba(245,240,224,.6)" data-cancel="${b.id}">Cancel</button>`:''}
+      </div></div>`).join(''):'<p class="cream-60">No reservations.</p>';
+    panel.querySelectorAll('[data-cancel]').forEach(b=>b.onclick=()=>{
+      const all=getBookings(); const it=all.find(x=>x.id===b.dataset.cancel); if(it){ it.status='cancelled'; saveBookings(all); toast('Cancelled'); render(); }
+    });
+  } else if(activeTab==='Wallet'){
+    panel.innerHTML=`<div style="display:flex;gap:.5rem;margin-bottom:1.5rem">
+      <input id="topup" type="number" value="${topup}" class="input" style="width:8rem;background:#000">
+      <button id="topupBtn" class="btn btn-primary btn-sm">Top Up</button>
+    </div>
+    <div>${tx.map(t=>`<div class="list-row"><div>${t.description}<div style="font-size:.75rem;color:rgba(245,240,224,.5)">${new Date(t.created_at).toLocaleString()}</div></div><div class="${t.type==='topup'?'tx-pos':'tx-neg'}">${t.type==='topup'?'+':'-'}₹${Number(t.amount).toFixed(0)}</div></div>`).join('')}</div>`;
+    document.getElementById('topup').oninput=e=>topup=Number(e.target.value);
+    document.getElementById('topupBtn').onclick=()=>{
+      if(topup<=0) return;
+      const txs=LS.get('ros_tx',[]);
+      txs.unshift({ id:uid(), user:p.email, amount:topup, type:'topup', description:'Wallet top-up', created_at:new Date().toISOString()});
+      LS.set('ros_tx',txs);
+      const users=getUsers(); users[p.email].wallet_balance=(p.wallet_balance||0)+topup; saveUsers(users);
+      toast('Wallet topped up'); render();
+    };
+  } else if(activeTab==='Edit Profile'){
+    panel.innerHTML=`<div style="max-width:28rem;display:flex;flex-direction:column;gap:1rem">
+      <label class="field"><div class="field-label">Full Name</div><input id="nm" class="input" value="${p.full_name||''}" style="background:#000"></label>
+      <button id="saveBtn" class="btn btn-primary" style="align-self:flex-start">Save</button>
+    </div>`;
+    document.getElementById('saveBtn').onclick=()=>{
+      const v=document.getElementById('nm').value;
+      const users=getUsers(); users[p.email].full_name=v; users[p.email].avatar_initial=(v[0]||'U').toUpperCase(); saveUsers(users);
+      toast('Profile updated'); render();
+    };
+  }
+}
+</script>
+</body></html>

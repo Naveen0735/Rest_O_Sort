@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Your Order — REST-O-SORT</title>
+<meta name="description" content="Review your order and check out.">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+</head><body><main>
+<div class="container" style="padding-top:5rem;padding-bottom:5rem;max-width:64rem">
+  <div class="center" style="margin-bottom:3rem">
+    <div class="eyebrow">ORDER</div>
+    <h1 style="font-size:3rem">Your Order</h1>
+  </div>
+  <div id="orderRoot"></div>
+</div>
+</main>
+<script src="/script.js"></script>
+<script>
+function initPage(){ render(); }
+function render(){
+  const items=getCart();
+  const root=document.getElementById('orderRoot');
+  if(!items.length){
+    root.innerHTML=`<div class="empty-cart"><p class="cream-60">Your cart is empty.</p><a href="/menu" class="btn btn-primary" style="margin-top:1.5rem;display:inline-block">Browse Menu</a></div>`;
+    return;
+  }
+  root.innerHTML=`
+    <div class="order-grid">
+      <div>${items.map(i=>`
+        <div class="cart-row">
+          <div style="flex:1"><div style="font-family:var(--font-display);font-size:1.125rem">${i.name}</div><div class="gold" style="font-size:.875rem">₹${i.price}</div></div>
+          <div class="qty">
+            <button data-dec="${i.id}">${ICONS.minus}</button><span>${i.quantity}</span><button data-inc="${i.id}">${ICONS.plus}</button>
+          </div>
+          <div style="font-family:var(--font-display);font-size:1.125rem;width:5rem;text-align:right">₹${i.price*i.quantity}</div>
+          <button class="icon-btn" data-rm="${i.id}">${ICONS.trash}</button>
+        </div>`).join('')}</div>
+      <aside class="summary">
+        <h3 class="eyebrow-sm" style="font-size:10px">Summary</h3>
+        <div style="margin-top:1rem">
+          <div class="summary-row"><span>Items</span><span>${cartCount()}</span></div>
+          <div class="summary-row"><span>Subtotal</span><span>₹${cartTotal()}</span></div>
+        </div>
+        <div class="summary-total"><span style="font-size:11px;letter-spacing:.2em;text-transform:uppercase">Total</span><span style="font-family:var(--font-display);font-size:1.5rem;color:var(--gold)">₹${cartTotal()}</span></div>
+        <button id="checkout" class="btn btn-primary" style="width:100%;margin-top:1.5rem;padding:.75rem">Place Order</button>
+      </aside>
+    </div>`;
+  root.querySelectorAll('[data-inc]').forEach(b=>b.onclick=()=>{ const i=getCart().find(x=>x.id===b.dataset.inc); setQty(b.dataset.inc, i.quantity+1); render(); });
+  root.querySelectorAll('[data-dec]').forEach(b=>b.onclick=()=>{ const i=getCart().find(x=>x.id===b.dataset.dec); setQty(b.dataset.dec, i.quantity-1); render(); });
+  root.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{ removeFromCart(b.dataset.rm); render(); });
+  document.getElementById('checkout').onclick=()=>{
+    const u=currentUser();
+    if(!u){ toast('Please sign in','error'); setTimeout(()=>location.href='/signin',700); return; }
+    const orders=getOrders();
+    orders.unshift({ id:uid(), user:u.email, order_type:'delivery', items:getCart(), total:cartTotal(), status:'pending', created_at:new Date().toISOString() });
+    saveOrders(orders);
+    clearCart();
+    toast('Order placed!');
+    setTimeout(()=>location.href='/account', 700);
+  };
+}
+</script>
+</body></html>

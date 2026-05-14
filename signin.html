@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sign In — REST-O-SORT</title>
+<meta name="description" content="Sign in or join the Rest-O-Sort table.">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+</head><body><main>
+<div class="container" style="display:flex;align-items:center;justify-content:center;min-height:80vh;padding:4rem 1.5rem">
+  <div class="auth-card">
+    <div class="center">
+      <div class="eyebrow" style="margin-bottom:.5rem">REST-O-SORT</div>
+      <h1 class="auth-title" id="authTitle">Welcome Back</h1>
+    </div>
+    <form id="authForm" class="auth-form">
+      <input id="nameField" class="input" placeholder="Full name" style="background:#000;display:none">
+      <input id="email" class="input" type="email" placeholder="Email" required style="background:#000">
+      <input id="password" class="input" type="password" minlength="6" placeholder="Password" required style="background:#000">
+      <button class="btn btn-primary" id="submitBtn" style="width:100%;padding:.75rem">Sign In</button>
+    </form>
+    <button class="auth-toggle" id="toggle">New here? Create an account</button>
+  </div>
+</div>
+</main>
+<script src="/script.js"></script>
+<script>
+let mode='signin';
+function initPage(){
+  if(currentUser()){ location.href='/account'; return; }
+  document.getElementById('toggle').onclick=()=>{
+    mode = mode==='signin'?'signup':'signin';
+    document.getElementById('authTitle').textContent = mode==='signin'?'Welcome Back':'Join the Table';
+    document.getElementById('submitBtn').textContent = mode==='signin'?'Sign In':'Create Account';
+    document.getElementById('toggle').textContent = mode==='signin'?'New here? Create an account':'Already a member? Sign in';
+    document.getElementById('nameField').style.display = mode==='signup'?'block':'none';
+    document.getElementById('nameField').required = mode==='signup';
+  };
+  document.getElementById('authForm').addEventListener('submit', e=>{
+    e.preventDefault();
+    const email=document.getElementById('email').value.trim().toLowerCase();
+    const password=document.getElementById('password').value;
+    const name=document.getElementById('nameField').value.trim();
+    const creds=LS.get('ros_creds',{});
+    if(mode==='signup'){
+      if(creds[email]){ toast('Account already exists','error'); return; }
+      creds[email]=password; LS.set('ros_creds',creds);
+      ensureProfile(email, name||'Guest');
+      setCurrentUser({email, full_name:name||'Guest'});
+      toast("Welcome! You're signed in.");
+    } else {
+      if(!creds[email] || creds[email]!==password){ toast('Invalid email or password','error'); return; }
+      const p=ensureProfile(email);
+      setCurrentUser({email, full_name:p.full_name});
+      toast('Welcome back.');
+    }
+    setTimeout(()=>location.href='/account', 600);
+  });
+}
+</script>
+</body></html>

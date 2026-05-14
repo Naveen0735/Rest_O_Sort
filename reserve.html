@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reserve — REST-O-SORT</title>
+<meta name="description" content="Reserve your table at REST-O-SORT in three easy steps.">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+</head><body><main>
+<div class="container" style="padding-top:5rem;padding-bottom:5rem;max-width:72rem">
+  <div class="center" style="margin-bottom:4rem">
+    <div class="eyebrow">RESERVATION</div>
+    <h1 style="font-size:clamp(3rem,6vw,3.75rem)">Reserve in 3 Easy Steps</h1>
+  </div>
+  <div class="steps" id="steps"></div>
+  <form id="reserveForm" class="form-card">
+    <label class="field"><div class="field-label">Full Name</div><input class="input" name="guest_name" required></label>
+    <label class="field"><div class="field-label">Contact</div><input class="input" name="contact" required></label>
+    <label class="field"><div class="field-label">Date</div><input class="input" type="date" name="date" required></label>
+    <label class="field"><div class="field-label">Time</div><input class="input" type="time" name="time" value="19:00" required></label>
+    <label class="field"><div class="field-label">Guests</div><input class="input" type="number" name="party_size" value="2" min="1" max="20" required></label>
+    <label class="field"><div class="field-label">Zone</div>
+      <select class="input" name="zone">
+        <option value="fish_pond">Fish Pond</option>
+        <option value="live_music">Live Music</option>
+        <option value="open_kitchen">Open Kitchen</option>
+      </select>
+    </label>
+    <button class="btn btn-primary form-full" type="submit">Confirm Reservation</button>
+  </form>
+</div>
+</main>
+<script src="/script.js"></script>
+<script>
+const SLOT_CAPACITY=30;
+function initPage(){
+  document.getElementById('steps').innerHTML=[
+    {i:ICONS.user,n:1,t:'Create Account',d:'Sign in or sign up'},
+    {i:ICONS.pin,n:2,t:'Choose Your Zone',d:'Pick the perfect ambiance'},
+    {i:ICONS.utensils,n:3,t:'Dine & Enjoy',d:'Show up and relish'},
+  ].map(s=>`<div class="step"><div class="step-num">0${s.n}</div>${s.i}<h3 style="font-size:1.25rem">${s.t}</h3><p class="cream-60" style="font-size:.875rem;margin-top:.5rem">${s.d}</p></div>`).join('');
+
+  document.getElementById('reserveForm').addEventListener('submit', e=>{
+    e.preventDefault();
+    const u=currentUser();
+    if(!u){ toast('Please sign in to reserve','error'); setTimeout(()=>location.href='/signin',800); return; }
+    const fd=new FormData(e.target); const data=Object.fromEntries(fd.entries());
+    data.party_size=Number(data.party_size);
+    const dt=new Date(`${data.date}T${data.time}`);
+    if(dt < new Date()){ toast('Cannot book in the past','error'); return; }
+    const bookings=getBookings();
+    const slotTotal=bookings.filter(b=>b.booking_date===data.date && b.booking_time===data.time && b.status!=='cancelled').reduce((s,b)=>s+b.party_size,0);
+    if(slotTotal+data.party_size > SLOT_CAPACITY){ toast('This time slot is full','error'); return; }
+    if(bookings.some(b=>b.user===u.email && b.zone===data.zone && b.booking_date===data.date && b.booking_time===data.time && b.status!=='cancelled')){
+      toast('You already have a booking for this slot','error'); return;
+    }
+    bookings.push({ id:uid(), user:u.email, ...data, status:'confirmed', created_at:new Date().toISOString() });
+    saveBookings(bookings);
+    toast('Reservation confirmed!');
+    setTimeout(()=>location.href='/account', 700);
+  });
+}
+</script>
+</body></html>

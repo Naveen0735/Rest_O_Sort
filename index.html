@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>REST-O-SORT — Fine Dining in Mumbai</title>
+<meta name="description" content="Where every meal becomes an unforgettable story. Three immersive dining zones, signature cuisine in Mumbai.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<main>
+  <section class="hero">
+    <img src="/assets/hero.jpg" alt="">
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <div class="eyebrow" style="font-size:10px">EST · 2026 · MUMBAI</div>
+      <h1>REST-O-SORT</h1>
+      <div class="hairline"></div>
+      <p>Where every meal becomes an unforgettable story</p>
+      <div class="hero-ctas">
+        <a class="btn btn-primary" href="/reserve">Reserve Your Table</a>
+        <a class="btn btn-outline" href="/menu">Explore Our Menu</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="stats">
+    <div class="stats-grid">
+      <div><div class="stat-num">3</div><div class="stat-label">Unique Zones</div></div>
+      <div><div class="stat-num">17+</div><div class="stat-label">Signature Dishes</div></div>
+      <div><div class="stat-num">500+</div><div class="stat-label">Happy Guests</div></div>
+    </div>
+  </section>
+
+  <section class="story">
+    <div class="story-img-wrap">
+      <img src="/assets/chef.jpg" alt="Head chef" loading="lazy">
+      <div class="story-badge">
+        <div class="stars" id="storyStars"></div>
+        <div style="font-family:var(--font-display);font-size:1.5rem">4.9</div>
+        <div style="font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:rgba(245,240,224,.6)">Guest Rating</div>
+      </div>
+    </div>
+    <div>
+      <div class="eyebrow">OUR STORY</div>
+      <h2>Crafted with Passion <em class="gold" style="font-style:normal">&</em> Perfection</h2>
+      <p>For over a decade, Rest-O-Sort has been redefining fine dining in Mumbai. We marry heritage Indian flavours with global technique, served in three immersive ambiances designed to make every visit unforgettable.</p>
+      <div class="features" id="features"></div>
+    </div>
+  </section>
+
+  <section class="section section-onyx">
+    <div class="container">
+      <div class="center" style="margin-bottom:4rem">
+        <div class="eyebrow">DINING EXPERIENCES</div>
+        <h2 class="section-title">Choose Your Zone</h2>
+      </div>
+      <div class="grid-3" id="zones"></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="center" style="margin-bottom:4rem">
+        <div class="eyebrow">TESTIMONIALS</div>
+        <h2 class="section-title">What Our Guests Say</h2>
+      </div>
+      <div class="grid-3" id="testimonials"></div>
+    </div>
+  </section>
+
+  <section class="cta-banner">
+    <div class="cta-inner">
+      <h2 class="section-title">Ready for an Extraordinary Evening?</h2>
+      <p class="cream-70" style="margin-top:1rem">Book your table or have us delivered.</p>
+      <div class="hero-ctas" style="margin-top:2.5rem">
+        <a class="btn btn-primary" href="/reserve">Book a Table</a>
+        <a class="btn btn-outline" href="/order">Order Delivery</a>
+      </div>
+    </div>
+  </section>
+</main>
+<script src="/script.js"></script>
+<script>
+function initPage(){
+  document.getElementById('storyStars').innerHTML = ICONS.star.repeat(5);
+  document.getElementById('features').innerHTML = [
+    {i:ICONS.award,t:'Award-Winning Chefs'},
+    {i:ICONS.leaf,t:'Farm-Fresh Ingredients'},
+    {i:ICONS.sparkles,t:'Immersive Ambiances'},
+  ].map(f=>`<div class="feature">${f.i}<div class="feature-title">${f.t}</div></div>`).join('');
+  document.getElementById('zones').innerHTML = [
+    {img:'/assets/zone-pond.jpg',i:ICONS.fish,t:'Fish Pond',d:'Peaceful waterside dining beside a serene koi pond.'},
+    {img:'/assets/zone-music.jpg',i:ICONS.music,t:'Live Music',d:'Energetic evenings with intimate live performances.'},
+    {img:'/assets/zone-kitchen.jpg',i:ICONS.flame,t:'Open Kitchen',d:'Watch our chefs craft your meal in real time.'},
+  ].map(z=>`<div class="zone-card"><img src="${z.img}" alt="${z.t}" loading="lazy"><div class="zone-card-grad"></div><div class="zone-card-body">${z.i}<h3>${z.t}</h3><p>${z.d}</p></div></div>`).join('');
+  document.getElementById('testimonials').innerHTML = [
+    {q:"An experience that lingers long after dessert. The fish pond zone is pure magic.",a:'Aanya Sharma'},
+    {q:"Each course was a story. The open kitchen made dinner a performance.",a:'Rohan Mehta'},
+    {q:"Easily the most memorable anniversary we've had. We'll be back.",a:'Priya & Karan'},
+  ].map(t=>`<div class="test-card"><div class="stars">${ICONS.star.repeat(5)}</div><p>"${t.q}"</p><div class="test-author">— ${t.a}</div></div>`).join('');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Menu — REST-O-SORT</title>
+<meta name="description" content="Our culinary collection of signature dishes.">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<main>
+<div class="container" style="padding-top:5rem;padding-bottom:5rem">
+  <div class="center" style="margin-bottom:3rem">
+    <div class="eyebrow">MENU</div>
+    <h1 style="font-size:clamp(3rem,6vw,3.75rem)">Our Culinary Collection</h1>
+    <div class="hairline"></div>
+    <div class="search-wrap" id="searchWrap"></div>
+    <div class="tabs" id="tabs"></div>
+  </div>
+  <div class="menu-grid" id="grid"></div>
+</div>
+</main>
+<script src="/script.js"></script>
+<script>
+const TABS = [['all','All Dishes'],['starters','Starters'],['mains','Mains'],['desserts','Desserts'],['drinks','Drinks']];
+let activeTab='all', query='';
+function initPage(){
+  document.getElementById('searchWrap').innerHTML = `${ICONS.search}<input class="search-input" id="q" placeholder="Search dishes...">`;
+  document.getElementById('q').addEventListener('input', e=>{ query=e.target.value; render(); });
+  document.getElementById('tabs').innerHTML = TABS.map(([k,l])=>`<button class="tab${k===activeTab?' active':''}" data-k="${k}">${l}</button>`).join('');
+  document.getElementById('tabs').addEventListener('click', e=>{
+    const b=e.target.closest('.tab'); if(!b) return;
+    activeTab=b.dataset.k;
+    document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.k===activeTab));
+    render();
+  });
+  render();
+}
+function render(){
+  const items = SEED_MENU.filter(i=>(activeTab==='all'||i.category===activeTab) && i.name.toLowerCase().includes(query.toLowerCase()));
+  const grid = document.getElementById('grid');
+  if(!items.length){ grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:rgba(245,240,224,.5);padding:5rem 0">No dishes match.</div>'; return; }
+  grid.innerHTML = items.map(i=>`
+    <div class="menu-card">
+      ${i.is_popular?'<span class="popular">Popular</span>':''}
+      <div class="eyebrow-sm">${i.category}</div>
+      <h3>${i.name}</h3>
+      <p class="menu-desc">${i.description}</p>
+      <div class="menu-foot">
+        <div class="price">₹${i.price}</div>
+        <button class="btn btn-outline btn-sm" data-add='${JSON.stringify({id:i.id,name:i.name,price:i.price})}' style="display:inline-flex;align-items:center;gap:.5rem">${ICONS.plus} Add to Order</button>
+      </div>
+    </div>`).join('');
+  grid.querySelectorAll('[data-add]').forEach(b=>b.addEventListener('click', ()=>{
+    const d=JSON.parse(b.dataset.add); addToCart(d); toast(d.name+' added');
+  }));
+}
+</script>
+</body></html>

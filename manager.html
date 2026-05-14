@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Manager Console — REST-O-SORT</title>
+<meta name="description" content="Manager dashboard.">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+</head><body><main>
+<div id="mgrRoot"></div>
+</main>
+<script src="/script.js"></script>
+<script>
+const PIN='1234'; const TABS=['Bookings','Live Orders','Billing','Analytics','All Items'];
+let unlocked=sessionStorage.getItem('ros_mgr')==='1', pin='', activeTab='Bookings';
+function initPage(){ render(); }
+function render(){
+  const root=document.getElementById('mgrRoot');
+  if(!unlocked){
+    root.innerHTML=`<div style="min-height:80vh;display:flex;align-items:center;justify-content:center;padding:1.5rem">
+      <div class="pin-box">${ICONS.lock}<h1 style="font-size:1.5rem;margin-top:.75rem">Manager Access</h1>
+      <p style="font-size:.75rem;color:rgba(245,240,224,.5);margin-top:.25rem">Enter your 4-digit PIN (demo: 1234)</p>
+      <div class="pin-dots">${[0,1,2,3].map(i=>`<div class="pin-dot${pin.length>i?' filled':''}"></div>`).join('')}</div>
+      <div class="pin-pad">
+        ${['1','2','3','4','5','6','7','8','9'].map(d=>`<button class="pin-key" data-d="${d}">${d}</button>`).join('')}
+        <button class="pin-key aux" id="clr">CLR</button>
+        <button class="pin-key" data-d="0">0</button>
+        <button class="pin-key aux" id="bks">←</button>
+      </div></div></div>`;
+    root.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{
+      if(pin.length>=4) return; pin+=b.dataset.d; render();
+      if(pin.length===4) setTimeout(()=>{ if(pin===PIN){ unlocked=true; sessionStorage.setItem('ros_mgr','1'); } pin=''; render(); }, 150);
+    });
+    document.getElementById('clr').onclick=()=>{ pin=''; render(); };
+    document.getElementById('bks').onclick=()=>{ pin=pin.slice(0,-1); render(); };
+    return;
+  }
+  const bookings=getBookings(), orders=getOrders();
+  const revenue=orders.reduce((s,o)=>s+Number(o.total),0);
+  const completed=orders.filter(o=>o.status==='completed').length;
+  const active=orders.filter(o=>o.status!=='completed'&&o.status!=='cancelled').length;
+  root.innerHTML=`<div class="container" style="padding-top:5rem;padding-bottom:5rem">
+    <div class="eyebrow">DASHBOARD</div>
+    <h1 style="font-size:2.25rem;margin-bottom:2rem">Manager Console</h1>
+    <div class="kpi-grid">
+      ${kpi('Total Reservations',bookings.length)}${kpi('Active Orders',active)}${kpi('Total Revenue','₹'+revenue.toFixed(0))}${kpi('Completed Bills',completed)}
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1.5rem">
+      ${TABS.map(t=>`<button class="tab${t===activeTab?' active':''}" data-t="${t}">${t}</button>`).join('')}
+    </div>
+    <div class="data-wrap" id="dataPanel"></div>
+  </div>`;
+  document.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{ activeTab=b.dataset.t; render(); });
+  renderTab(bookings, orders, revenue);
+}
+function kpi(l,v){ return `<div class="kpi"><div class="kpi-l">${l}</div><div class="kpi-v">${v}</div></div>`; }
+function renderTab(bookings,orders,revenue){
+  const p=document.getElementById('dataPanel');
+  if(activeTab==='Bookings'){
+    p.innerHTML = table(['Guest','Zone','Contact','Party','Date','Time','Status'],
+      bookings.map(b=>`<td>${b.guest_name}</td><td>${b.zone}</td><td>${b.contact}</td><td>${b.party_size}</td><td>${b.booking_date}</td><td>${b.booking_time}</td><td><span class="status-pill ${b.status==='cancelled'?'cancelled':''}">${b.status}</span></td>`));
+  } else if(activeTab==='Live Orders'){
+    p.innerHTML=table(['Customer','Type','Items','Amount','Time','Status'],
+      orders.map(o=>`<td>${o.user.split('@')[0]}</td><td>${o.order_type}</td><td>${o.items.length}</td><td class="gold">₹${Number(o.total).toFixed(0)}</td><td>${new Date(o.created_at).toLocaleTimeString()}</td><td class="status-pill">${o.status}</td>`));
+  } else if(activeTab==='Billing'){
+    p.innerHTML = orders.length?orders.map(o=>`<div style="border:1px solid rgba(201,168,76,.15);padding:1rem;margin-bottom:.75rem">
+      <div style="display:flex;justify-content:space-between;margin-bottom:.5rem"><div>Order #${o.id.slice(0,8)}</div><div style="font-family:var(--font-display);font-size:1.25rem;color:var(--gold)">₹${Number(o.total).toFixed(0)}</div></div>
+      <ul style="font-size:.75rem;color:rgba(245,240,224,.6);list-style:none">${o.items.map(i=>`<li>${i.quantity}× ${i.name} — ₹${i.price*i.quantity}</li>`).join('')}</ul>
+    </div>`).join(''):'<p class="cream-60">No orders.</p>';
+  } else if(activeTab==='Analytics'){
+    p.innerHTML=`<div class="grid-3" style="gap:1rem">
+      ${kpi('Avg Order','₹'+(orders.length?(revenue/orders.length).toFixed(0):0))}
+      ${kpi('Confirmed', getBookings().filter(b=>b.status==='confirmed').length)}
+      ${kpi('Cancelled', getBookings().filter(b=>b.status==='cancelled').length)}
+    </div>`;
+  } else if(activeTab==='All Items'){
+    p.innerHTML=table(['Name','Category','Price','Popular'],
+      SEED_MENU.map(i=>`<td>${i.name}</td><td>${i.category}</td><td class="gold">₹${i.price}</td><td>${i.is_popular?'Yes':'No'}</td>`));
+  }
+}
+function table(heads, rows){
+  return `<table class="data-table"><thead><tr>${heads.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r}</tr>`).join('')||`<tr><td colspan="${heads.length}" class="cream-60" style="padding:2rem;text-align:center">No data.</td></tr>`}</tbody></table>`;
+}
+</script>
+</body></html>
